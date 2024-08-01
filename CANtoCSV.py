@@ -17,10 +17,9 @@ def read_message(bus):
 
     return messsage
 
-def hex_string_to_two_floats_only(hex_string):
+def hex_string_to_floats(hex_string):
     if len(hex_string) != 16:
         raise ValueError("Input hex string must contain exactly 16 characters representing 8 hex values.")
-    
     hex_string1 = hex_string[:8]
     hex_string2 = hex_string[8:]
     
@@ -38,7 +37,8 @@ def hex_string_to_two_floats_only(hex_string):
     
     return float_value1, float_value2
 
-def create_file(fname):
+def create_file():
+    fname = f"data_file_{datetime.now().strftime('%Y-%m-%d')}_{datetime.now().strftime('%H:%M:%S')}.csv"
     f = open(fname, "a")
     f.write(
         "Timestamp,Linpot1,Linpot2,Linpot3,Linpot4,AccX,AccY,AccZ,"
@@ -48,6 +48,8 @@ def create_file(fname):
         "BatteryVoltage,AirTemp,CoolantTemp\n"
     )
     f.close()
+
+    return fname
 
 def append_to_file(fname, first, second, last):
     f = open(fname, "a")
@@ -61,15 +63,17 @@ if __name__ == "__main__":
 
     bus = can.Bus(channel = 'can0', interface = 'socketcan', bitrate = 250000)
     
-    fname = f"data_file_{datetime.now().strftime("%Y-%m-%d")}_{datetime.now().strftime('%H:%M:%S')}.csv"
-    create_file(fname)
+    fname = create_file()
     count = 0
     last = False
     while True:
         last = False
         for count in range(10):
             hex_values = read_message(bus)
-            first, second = hex_string_to_two_floats_only(hex_values)
+            if hex_values == "ffffffffffffffff":
+                fname = create_file() #creates one more file than needed at the end of the transmission, wont get better without explicit state
+                break
+            first, second = hex_string_to_floats(hex_values)
             if(count == 9):
                 last = True
             append_to_file(fname, first, second, last)
