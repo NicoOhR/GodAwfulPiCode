@@ -12,6 +12,7 @@ def read_message(bus):
 
     except KeyboardInterrupt:
         print("\n Stopped Reading From Bus")
+        #bus does not close cleanly despite following line
         bus.close()
 
     return messsage
@@ -39,7 +40,13 @@ def hex_string_to_two_floats_only(hex_string):
 
 def create_file(fname):
     f = open(fname, "a")
-    f.write("Timestamp,Linpot1,Linpot2,Linpot3,Linpot4,AccX,AccY,AccZ,GyroX,GyroY,GyroZ,RPM,TPS,FuelOpenTime,IgnitionAngle,Barometer,MAP,Lambda,AnalogInput1,AnalogInput2,AnalogInput3,AnalogInput4,AnalogInput5,AnalogInput6,AnalogInput7,AnalogInput8,BatteryVoltage,AirTemp,CoolantTemp \n")
+    f.write(
+        "Timestamp,Linpot1,Linpot2,Linpot3,Linpot4,AccX,AccY,AccZ,"
+        "GyroX,GyroY,GyroZ,RPM,TPS,FuelOpenTime,IgnitionAngle,Barometer,"
+        "MAP,Lambda,AnalogInput1,AnalogInput2,AnalogInput3,AnalogInput4,"
+        "AnalogInput5,AnalogInput6,AnalogInput7,AnalogInput8,"
+        "BatteryVoltage,AirTemp,CoolantTemp\n"
+    )
     f.close()
 
 def append_to_file(fname, first, second, last):
@@ -54,7 +61,7 @@ if __name__ == "__main__":
 
     bus = can.Bus(channel = 'can0', interface = 'socketcan', bitrate = 250000)
     
-    fname = f"data_file{datetime.now().strftime('%H:%M:%S')}.csv"
+    fname = f"data_file_{datetime.now().strftime("%Y-%m-%d")}_{datetime.now().strftime('%H:%M:%S')}.csv"
     create_file(fname)
     count = 0
     last = False
