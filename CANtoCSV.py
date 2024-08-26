@@ -8,7 +8,7 @@ def read_message(bus):
 
         if msg is not None:
             messsage = msg.data.hex()
-            print(f"Received: {msg.data.hex()}")
+            print(f"Received: {msg.data.hex()} from id {msg.arbitration_id}")
 
     except KeyboardInterrupt:
         print("\n Stopped Reading From Bus")
@@ -45,7 +45,7 @@ def create_file():
         "GyroX,GyroY,GyroZ,RPM,TPS,FuelOpenTime,IgnitionAngle,Barometer,"
         "MAP,Lambda,AnalogInput1,AnalogInput2,AnalogInput3,AnalogInput4,"
         "AnalogInput5,AnalogInput6,AnalogInput7,AnalogInput8,"
-        "BatteryVoltage,AirTemp,CoolantTemp\n"
+        "BatteryVoltage,AirTemp,CoolantTemp,odd\n"
     )
     f.close()
 
@@ -60,21 +60,25 @@ def append_to_file(fname, first, second, last):
 
 
 if __name__ == "__main__":
-
-    bus = can.Bus(channel = 'can0', interface = 'socketcan', bitrate = 250000)
+    import os 
+    
+    filters = [
+        {"can_id": 0x417, "can_mask":0xFFF, "extended": False}
+    ]
+    bus = can.Bus(channel = 'can0', interface = 'socketcan', bitrate = 1000000, can_filters = filters)
     
     fname = create_file()
     count = 0
     last = False
     while True:
         last = False
-        for count in range(10):
+        for count in range(15):
             hex_values = read_message(bus)
             if hex_values == "ffffffffffffffff":
-                fname = create_file() #creates one more file than needed at the end of the transmission, wont get better without explicit state
+                fname = create_file() #creates one more file than needed at the end of the transmission, wont get better without state or explicit "transmission start" from NoTeC
                 break
             first, second = hex_string_to_floats(hex_values)
-            if(count == 9):
+            if(count == 14):
                 last = True
             append_to_file(fname, first, second, last)
         
