@@ -3,18 +3,12 @@ import struct
 from datetime import datetime
 
 def read_message(bus):
-    try:
-        msg = bus.recv()
+    msg = bus.recv()
 
-        if msg is not None and not msg.is_error_frame:
-            messsage = msg.data.hex()
-            print(f"Received: {msg.data.hex()} from id {msg.arbitration_id}")
-            return msg.arbitration_id, messsage
-
-    except KeyboardInterrupt:
-        print("\n Stopped Reading From Bus")
-        #bus does not close cleanly despite following line
-        bus.close()
+    if msg is not None and not msg.is_error_frame:
+        messsage = msg.data.hex()
+        #print(f"Received: {msg.data.hex()} from id {msg.arbitration_id}")
+        return msg.arbitration_id, messsage
 
     return None, None
 
@@ -58,21 +52,22 @@ def append_to_file(f, data):
 
 if __name__ == "__main__":
     import os 
-    bus = can.Bus(channel = 'can0', interface = 'socketcan', bitrate = 500000)
     
-    fname = create_file()
-    count = 0
     can_data = {}
-    
-    with open(fname, "a") as f:
-        while True:
-            data = []
-            for count in range(15):
-                while True:
+
+    with can.Bus(channel = 'can0', interface = 'socketcan', bitrate = 1000000) as bus:
+        try:
+            while True:
                     can_id, hex_values = read_message(bus)
+                    #print(can_id)
                     if hex_values is not None:  # Proceed only if hex_values is valid
-                        break  # Exit the while loop if a valid hex_values is obtained
-                first, second = hex_string_to_floats(hex_values)
-                data.extend([first, second])
-            append_to_file(f, data)
-            
+                        first, second = hex_string_to_floats(hex_values)
+                    if can_id not in can_data:
+                        can_data[can_id] = []
+                    can_data[can_id].extend([first,second])
+                    print(can_id)
+        except KeyboardInterrupt:      
+            for id in can_data:
+                print(id)
+                for data in can_data[id]:
+                    print(data) 
