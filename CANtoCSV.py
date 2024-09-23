@@ -6,16 +6,17 @@ def read_message(bus):
     try:
         msg = bus.recv()
 
-        if msg is not None:
+        if msg is not None and not msg.is_error_frame:
             messsage = msg.data.hex()
             print(f"Received: {msg.data.hex()} from id {msg.arbitration_id}")
+            return msg.arbitration_id, messsage
 
     except KeyboardInterrupt:
         print("\n Stopped Reading From Bus")
         #bus does not close cleanly despite following line
         bus.close()
 
-    return messsage
+    return None, None
 
 def hex_string_to_floats(hex_string):
     if len(hex_string) != 16:
@@ -51,34 +52,27 @@ def create_file():
 
     return fname
 
-def append_to_file(fname, first, second, last):
-    f = open(fname, "a")
-    if last:
-        f.write(f"{first}, {second} \n")
-    else:
-        f.write(f"{first}, {second}, ")
-
+def append_to_file(f, data):
+    line = ', '.join(map(str, data)) + '\n'
+    f.write(line)
 
 if __name__ == "__main__":
     import os 
-    
-    filters = [
-        {"can_id": 0x417, "can_mask":0xFFF, "extended": False}
-    ]
-    bus = can.Bus(channel = 'can0', interface = 'socketcan', bitrate = 1000000, can_filters = filters)
+    bus = can.Bus(channel = 'can0', interface = 'socketcan', bitrate = 500000)
     
     fname = create_file()
     count = 0
-    last = False
-    while True:
-        last = False
-        for count in range(15):
-            hex_values = read_message(bus)
-            if hex_values == "ffffffffffffffff":
-                fname = create_file() #creates one more file than needed at the end of the transmission, wont get better without state or explicit "transmission start" from NoTeC
-                break
-            first, second = hex_string_to_floats(hex_values)
-            if(count == 14):
-                last = True
-            append_to_file(fname, first, second, last)
-        
+    can_data = {}
+    
+    with open(fname, "a") as f:
+        while True:
+            data = []
+            for count in range(15):
+                while True:
+                    can_id, hex_values = read_message(bus)
+                    if hex_values is not None:  # Proceed only if hex_values is valid
+                        break  # Exit the while loop if a valid hex_values is obtained
+                first, second = hex_string_to_floats(hex_values)
+                data.extend([first, second])
+            append_to_file(f, data)
+            
